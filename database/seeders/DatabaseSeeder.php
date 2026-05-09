@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             InitialPharmacySeeder::class,
             DefaultAdminSeeder::class,
             DefaultProductSetupSeeder::class,
+            ExpenseCategorySeeder::class,
         ]);
     }
 }
