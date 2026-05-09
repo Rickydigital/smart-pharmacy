@@ -1,0 +1,1344 @@
+--- PAGE 1 ---
+Smart Pharmacy System Documentation
+1. System Overview
+Smart Pharmacy is a pharmacy management system designed around a fast POS workflow, strong stock
+control, branch-level accountability, alerts, approvals, and owner visibility.
+The system is built to support day-to-day pharmacy operations such as selling medicines, purchasing stock,
+managing batches, tracking expiry, handling returns, recording expenses, closing cashier days, moving
+stock between branches, and notifying responsible users when action is required.
+The main principle is simple:
+Every important business movement should be recorded, controlled by permissions, visible in
+reports, and traceable through activity logs or notifications.
+2. Main Roles
+2.1 Owner
+The Owner has full business control. This role can view and manage all branches, users, stock, sales,
+expenses, reports, settings, alerts, approvals, and audit records.
+Typical Owner responsibilities:
+View dashboard performance.
+Review sales, profit, expenses, and stock value.
+Approve sensitive operations.
+Verify or reject daily closings.
+Review pending notifications.
+Monitor stock alerts and expiry risks.
+Manage system settings and users.
+View reports across all branches.
+2.2 Admin
+Admin is almost the same as Owner in system control. This role is used for a trusted system administrator
+or senior operator .
+Typical Admin responsibilities:
+Configure system setup.
+Manage users and permissions.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1
+
+--- PAGE 2 ---
+Manage products, purchases, expenses, alerts, and reports.
+Approve or reject returns, transfers, stock adjustments, and daily closings.
+2.3 Pharmacist
+The Pharmacist handles pharmacy operations and medicine-related work. This role can sell, view stock,
+manage prescriptions, create sales return requests, create stock adjustment requests, receive stock
+transfers, record expenses, and submit daily closing.
+Pharmacist cannot approve sensitive business actions such as final stock adjustment approval, sales return
+approval, or daily closing verification.
+Typical Pharmacist responsibilities:
+Use POS.
+View product and stock information.
+Manage prescriptions.
+Create sales return requests.
+Create stock adjustment requests.
+Receive stock transfers if assigned to destination branch.
+Record expenses.
+Submit daily closing.
+2.4 Cashier
+Cashier is focused on POS operations. This role sells products, prints receipts, records POS expenses,
+creates sales return requests, and submits daily closings.
+Cashier cannot approve returns, stock transfers, stock adjustments, or verify daily closing.
+Typical Cashier responsibilities:
+Search and sell products through POS.
+Print receipts.
+View today’s sales.
+Record daily expenses.
+Submit daily closing.
+Create sales return request when customer brings items back.
+2.5 Storekeeper
+Storekeeper controls stock movement and inventory records. This role can manage products, suppliers,
+purchases, stock adjustments, and stock transfers.
+Storekeeper can create stock transfers and dispatch/receive them, but final approval remains Owner/
+Admin.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+2
+
+--- PAGE 3 ---
+Typical Storekeeper responsibilities:
+Manage products, units, and pricing.
+Manage suppliers.
+Create and receive purchases.
+View stock and movements.
+Create stock adjustment requests.
+Create stock transfers.
+Dispatch and receive transferred stock.
+View stock and purchase reports.
+3. Core System Flow
+The complete stock and money flow works like this:
+Setup
+→ Products + Units + Prices
+→ Suppliers
+→ Purchases
+→ Inventory batches
+→ POS Sales
+→ Sales Returns if needed
+→ Expenses
+→ Daily Closing
+→ Reports
+→ Dashboard
+→ Alerts + Notifications
+The complete inventory flow works like this:
+Purchase received
+→ Inventory increases
+→ POS sale
+→ Inventory decreases
+→ Sales return
+→ Inventory may be restored if item is sellable
+→ Stock adjustment
+→ Inventory corrected, damaged stock removed, expired stock written off
+→ Stock transfer
+→ Source branch stock decreases, destination branch stock increases
+→ Alerts monitor low stock and expiry
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+3
+
+--- PAGE 4 ---
+4. Setup Module
+Purpose
+The setup module stores the pharmacy profile, branches, settings, and system configuration.
+The system should be seeded with one default pharmacy and one main branch during installation. Users
+should edit existing pharmacy and branch information, not create a new pharmacy from the client UI.
+Key Data
+Pharmacy profile
+Main branch
+Additional branches
+Pharmacy settings
+System preferences
+Owner/Admin Workflow
+Open Setup.
+Edit pharmacy profile.
+Edit branch details.
+Configure settings.
+Save changes.
+Other Roles
+Other roles normally do not manage setup. They may only see branch-related information indirectly in POS,
+stock, reports, and filters.
+5. User and Permission Module
+Purpose
+Controls who can access each part of the system.
+The system uses roles and permissions. Each user belongs to a pharmacy and may belong to a branch.
+Non-owner users usually operate within their assigned branch.
+Main Roles
+Owner
+Admin
+Pharmacist
+Cashier
+Storekeeper
+• 
+• 
+• 
+• 
+• 
+1. 
+2. 
+3. 
+4. 
+5. 
+• 
+• 
+• 
+• 
+• 
+4
+
+--- PAGE 5 ---
+Owner/Admin Workflow
+Create user .
+Assign branch.
+Assign role.
+System controls visible menu items and allowed actions through permissions.
+Permission Behavior
+Permissions control:
+Sidebar visibility
+Controller access
+Approval buttons
+Report access
+Dashboard visibility
+Notification targeting
+For example:
+stock_transfer.approve → user can approve stock transfer
+stock_transfer.receive → user can receive stock transfer
+inventory_alert.view → user can see Inventory Alert Center
+inventory_alert.generate → user can manually generate alerts
+6. Product Module
+Purpose
+Stores all sellable and stockable items.
+A product can have different units, such as pill, strip, box, bottle, sachet, or carton. The system uses base-
+unit logic to keep stock accurate.
+Example
+Product: Paracetamol
+Base unit: Pill
+Strip: 10 pills
+Box: 100 pills
+If cashier sells:
+1. 
+2. 
+3. 
+4. 
+• 
+• 
+• 
+• 
+• 
+• 
+5
+
+--- PAGE 6 ---
+2 boxes
+The system calculates:
+2 × 100 = 200 base units
+Key Data
+Product name
+Code
+Barcode
+Generic name
+Brand
+Strength
+Product type
+Category
+Base unit
+Product units
+Sale prices
+Active status
+Owner/Admin Workflow
+Create product types.
+Create categories.
+Create units.
+Create products.
+Configure product units.
+Configure retail and wholesale prices.
+Activate or deactivate products.
+Storekeeper Workflow
+Create and update products.
+Configure units and prices.
+Maintain stock-related product setup.
+Pharmacist/Cashier Workflow
+View product details.
+Sell active products with available non-expired stock.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+1. 
+2. 
+3. 
+• 
+• 
+6
+
+--- PAGE 7 ---
+7. Product Units and Pricing
+Purpose
+Allows selling and transferring items in user-friendly units while stock remains accurate in base units.
+Example
+Base unit: Pill
+Strip = 10 pills
+Box = 100 pills
+POS Behavior
+Cashier selects:
+Unit: Box
+Quantity: 2
+System calculates:
+Base units sold = 2 × 100 = 200 pills
+Stock Transfer Behavior
+Storekeeper selects:
+Product batch
+Unit: Box
+Quantity: 3
+System calculates:
+Base units transferred = 3 × 100 = 300 pills
+Important Rule
+Users should not manually enter base units in normal selling or transfer workflows. They choose product
+unit and quantity; the system calculates base units.
+7
+
+--- PAGE 8 ---
+8. Supplier Module
+Purpose
+Stores suppliers used during purchases.
+Key Data
+Supplier name
+Phone
+Email
+Address
+Status
+Owner/Admin Workflow
+Create and manage suppliers.
+Storekeeper Workflow
+View and manage suppliers if allowed.
+Select supplier during purchase creation.
+9. Purchase Module
+Purpose
+Purchases bring stock into the pharmacy.
+General Flow
+Create purchase
+→ Add purchase items
+→ Receive purchase
+→ Inventory batches created or updated
+→ Stock becomes available for sale
+Key Data
+Purchase number
+Supplier
+Branch
+Purchase date
+Items
+Quantity
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+8
+
+--- PAGE 9 ---
+Unit
+Batch number
+Expiry date
+Cost
+Status
+Owner/Admin Workflow
+View purchases.
+Review purchase records.
+Manage purchase process.
+View purchase reports.
+Storekeeper Workflow
+Create purchase.
+Add items and batches.
+Receive purchase.
+System creates inventory records.
+Notification Behavior
+When a purchase is created, Owner/Admin can be notified for review.
+10. Inventory Module
+Purpose
+Inventory stores actual stock by branch, product, batch, expiry date, and cost.
+Key Data
+Pharmacy
+Branch
+Product
+Batch number
+Expiry date
+Received quantity in base units
+Available quantity in base units
+Unit cost base
+Status
+Active/inactive
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1. 
+2. 
+3. 
+4. 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+9
+
+--- PAGE 10 ---
+Inventory Status Examples
+available
+expired
+depleted
+Important Rules
+POS only sells available inventory.
+POS excludes expired stock.
+Stock adjustments can increase or decrease inventory.
+Sales returns can restore stock only if items are sellable.
+Stock transfer dispatch decreases source branch stock.
+Stock transfer receive increases destination branch stock.
+Auto expiry write-off can reduce expired/today-expiring stock to zero.
+11. POS Module
+Purpose
+The POS is the main selling screen. It should be fast, simple, and branch-aware.
+POS Workflow
+Cashier opens POS
+→ Selects branch if allowed
+→ Searches product
+→ System returns products with available non-expired stock
+→ Cashier selects unit and quantity
+→ System calculates price and base units
+→ Cashier chooses payment method
+→ Sale is completed
+→ Inventory decreases
+→ Receipt can be printed
+Product Search Logic
+POS product search shows only products that:
+Belong to current pharmacy
+Are active
+Have inventory in selected branch
+Have available quantity greater than zero
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+10
+
+--- PAGE 11 ---
+Have inventory status available
+Are not expired
+If expiry date is today and the automatic write-off rule is enabled, POS should exclude it using:
+expiry_date > today
+not:
+expiry_date >= today
+POS Payment Methods
+Cash
+Mobile money
+Card
+Bank
+Credit
+POS Receipt
+After sale, the user can view and print a receipt. Receipt should show:
+Pharmacy details
+Branch
+Sale number
+Cashier
+Items
+Quantity
+Unit price
+Total
+Payment method
+Change/balance
+Cashier Role
+Cashier can:
+Use POS.
+Search products.
+Complete sales.
+Print receipts.
+View today’s sales.
+Record POS expenses.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+11
+
+--- PAGE 12 ---
+Cashier cannot:
+Approve returns.
+Approve stock adjustment.
+Verify daily closing.
+Manage settings.
+Pharmacist Role
+Pharmacist can:
+Use POS.
+Sell products.
+Print receipts.
+Create sales return requests.
+Manage prescription-related work.
+Owner/Admin Role
+Owner/Admin can:
+Use POS.
+View all branch sales.
+Review POS activity.
+Cancel sales if permission exists.
+View reports.
+12. Today Sales and Receipt Reprint
+Purpose
+Allows cashier or owner to view today’s sales and reprint receipts.
+Workflow
+Open POS
+→ Click Today Sales
+→ System loads sales for selected branch and today
+→ User selects receipt
+→ Receipt opens in modal
+→ User prints thermal receipt
+Role Behavior
+Cashier sees sales from assigned/selected branch depending on permission.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+12
+
+--- PAGE 13 ---
+Owner/Admin can view wider branch data.
+13. Sales Returns Module
+Purpose
+Handles customer returns after a sale.
+Return Flow
+Search sale receipt
+→ Select return items
+→ Enter quantity
+→ Select condition
+→ Choose refund method
+→ Save return as draft
+→ Owner/Admin approves or rejects
+→ If approved, system adjusts sale and stock
+Return Conditions
+sellable
+opened
+damaged
+expired
+Stock Restore Rule
+Only sellable items should restore stock.
+sellable → can restore inventory
+damaged/opened/expired → should not restore inventory
+Financial Logic
+Approved returns reduce:
+Sales total
+Gross profit
+Cost sold
+Net profit
+• 
+• 
+• 
+• 
+13
+
+--- PAGE 14 ---
+Returns should also affect daily closing depending on refund method.
+Cashier/Pharmacist Workflow
+Create sales return request.
+Cannot approve.
+Owner/Admin Workflow
+Review return request.
+Approve or reject.
+Approved return updates stock and reporting.
+Notification Behavior
+When a return is created, users with sales_return.approve should be notified.
+14. Expense Module
+Purpose
+Records business expenses such as transport, meals, utilities, rent, packaging, or operational costs.
+POS Expense Flow
+Open POS
+→ Open Expenses modal
+→ Select category
+→ Enter title, amount, payment method, date
+→ Save expense
+→ System records expense
+→ Daily closing may need recalculation if already verified
+→ Owner/Admin receives notification
+Delete Expense Flow
+Open expense list by specific date
+→ Delete allowed expense
+→ System deletes expense
+→ Daily closing may need recalculation
+→ Owner/Admin receives notification
+• 
+• 
+• 
+• 
+• 
+14
+
+--- PAGE 15 ---
+Important Rule
+Cashier should only delete own expense for today. Owner/Admin can delete wider expense records
+depending on system policy.
+Owner/Admin Workflow
+View all expenses.
+Review expense activity.
+Void or delete where allowed.
+View expense reports.
+Cashier/Pharmacist Workflow
+Create daily expenses.
+View own expenses.
+Delete only allowed expenses.
+15. Daily Closing Module
+Purpose
+Daily closing checks whether cash counted by cashier matches expected cash from sales and expenses.
+Daily Closing Formula
+Expected cash = cash sales - cash refunds - cash expenses
+The system can also show:
+Mobile money sales
+Card sales
+Bank sales
+Credit sales
+Total sales
+Total expenses
+Counted cash
+Difference
+Closing Workflow
+Cashier selects branch/date
+→ System calculates expected values
+→ Cashier enters counted cash
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+15
+
+--- PAGE 16 ---
+→ Save as draft or submit
+→ Owner/Admin verifies or rejects
+Statuses
+draft
+submitted
+verified
+rejected
+needs_recalculation
+Recalculation Logic
+If a sale, return, or expense happens after a closing was verified, the closing becomes:
+needs_recalculation
+Owner/Admin then recalculates and verifies again.
+Cashier/Pharmacist Workflow
+Create closing.
+Submit closing.
+Owner/Admin Workflow
+View all branch closings.
+Verify closing.
+Reject closing.
+Recalculate if status requires.
+Notification Behavior
+Submitted closings notify users with daily_closing.verify.
+Closings needing recalculation notify users with daily_closing.verify.
+16. Reports Module
+Purpose
+Reports show business performance and operational records.
+• 
+• 
+• 
+• 
+• 
+• 
+16
+
+--- PAGE 17 ---
+Report Center
+Report center gives summary cards and links to detailed reports.
+Sales Report
+Shows:
+Sales totals
+Sale count
+Payment methods
+Sale items
+Returns deducted where needed
+Stock Report
+Shows:
+Available stock
+Branch stock
+Batch stock
+Expiry information
+Low stock and stock status
+Purchase Report
+Shows:
+Purchases
+Suppliers
+Purchase totals
+Received stock
+Profit Report
+Shows:
+Net sales
+Cost sold
+Gross profit
+Expenses
+Net profit
+Approved returns
+Returned cost
+Profit reversed
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+17
+
+--- PAGE 18 ---
+Expense Report
+Shows:
+Expenses by date
+Expenses by category
+Payment method
+Branch
+Prescription Report
+Shows prescription-related records where enabled.
+Owner/Admin Role
+Can view all reports.
+Storekeeper Role
+Can view stock and purchase reports.
+Pharmacist Role
+Can view sales, stock, and prescription reports.
+Cashier Role
+Normally limited to operational sales/own closing views unless allowed.
+17. Stock Adjustment Module
+Purpose
+Stock adjustment handles corrections, damages, losses, expiry write-offs, physical count differences, and
+found stock.
+Adjustment Types
+damage
+expiry
+physical_count
+loss
+found_stock
+correction
+• 
+• 
+• 
+• 
+18
+
+--- PAGE 19 ---
+Direction
+in  → increase stock
+out → reduce stock
+Manual Adjustment Workflow
+Storekeeper/Pharmacist creates adjustment request
+→ Select branch
+→ Search inventory batch
+→ Choose direction and quantity
+→ Save as draft
+→ Owner/Admin approves or rejects
+→ If approved, inventory changes and movement is created
+Owner/Admin Workflow
+View all stock adjustments.
+Approve adjustments.
+Reject adjustments.
+Cancel if allowed.
+Storekeeper/Pharmacist Workflow
+Create stock adjustment request.
+View adjustment status.
+Cashier Workflow
+Normally no stock adjustment creation unless allowed.
+Inventory Movement
+When approved, system creates movement:
+stock_adjustment_in
+stock_adjustment_out
+Auto Expiry Write-off
+The system can automatically create an approved stock adjustment when inventory expires.
+• 
+• 
+• 
+• 
+• 
+• 
+19
+
+--- PAGE 20 ---
+Inventory expiry date <= today
+→ System creates approved expiry adjustment
+→ Available quantity becomes zero
+→ Inventory status becomes expired
+→ Inventory becomes inactive
+→ Movement is created
+→ Owner/Admin receives notification
+18. Stock Transfer Module
+Purpose
+Transfers stock from one branch to another .
+Transfer Statuses
+draft
+approved
+dispatched
+received
+rejected
+cancelled
+Transfer Workflow
+Storekeeper creates transfer
+→ Select source branch
+→ Select destination branch
+→ Search source inventory batch
+→ Select product unit and quantity
+→ System calculates base units
+→ Save as draft
+→ Owner/Admin approves
+→ Source branch dispatches
+→ Destination branch receives
+→ Source inventory decreases
+→ Destination inventory increases
+20
+
+--- PAGE 21 ---
+Unit-Based Transfer Example
+Product: Amoxicillin
+Base unit: Capsule
+Box = 100 capsules
+Transfer quantity: 2 boxes
+Base units transferred = 200 capsules
+Owner/Admin Workflow
+Approve transfer .
+Reject transfer .
+Monitor dispatched transfers.
+Storekeeper Workflow
+Create transfer .
+Dispatch from source branch.
+Receive at destination branch if assigned.
+Pharmacist Workflow
+Receive transfer for assigned branch if permitted.
+Cashier Workflow
+Usually view only, or no access depending on policy.
+Notification Behavior
+Draft transfer notifies users with stock_transfer.approve.
+Approved transfer notifies source branch users with stock_transfer.dispatch.
+Dispatched transfer notifies destination branch users with stock_transfer.receive.
+Owner/Admin also receives watch notifications for dispatched transfers.
+19. Inventory Alert Center
+Purpose
+Inventory Alert Center tracks important stock risks.
+Alert Types
+low_stock
+out_of_stock
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+21
+
+--- PAGE 22 ---
+expiring_soon
+expired
+Alert Statuses
+open
+read
+resolved
+ignored
+Alert Workflow
+Command scans inventory
+→ Creates alert records
+→ Sends database notification to Owner/Admin
+→ Alerts appear in topbar counter
+→ User opens Alert Center
+→ User marks read, resolved, or ignored
+Low Stock Logic
+If available base units are below threshold, create low stock alert.
+Example:
+LOW_STOCK_THRESHOLD=10
+Available stock = 5
+→ low_stock alert
+Expiry Logic
+If expiry date is within warning days:
+EXPIRY_WARNING_DAYS=30
+Expiry date is within next 30 days
+→ expiring_soon alert
+If expiry date has passed:
+22
+
+--- PAGE 23 ---
+expiry_date < today
+→ expired alert
+If automatic write-off is enabled for today-expiring stock:
+expiry_date <= today
+→ auto write-off command removes stock
+→ notification sent to owner/admin
+Owner/Admin Workflow
+View all alerts.
+Generate alerts manually.
+Mark alerts read/resolved/ignored.
+Storekeeper/Pharmacist/Cashier Workflow
+View alerts according to permission and branch.
+Resolve only if permission allows.
+20. Automatic Expiry Write-off
+Purpose
+Prevents expired medicines from remaining sellable.
+Command
+inventory:auto-writeoff-expired
+Logic
+The command checks inventory where:
+expiry_date <= today
+available_quantity_base_units > 0
+is_active = true
+Then it:
+• 
+• 
+• 
+• 
+• 
+23
+
+--- PAGE 24 ---
+Creates approved stock adjustment
+Creates adjustment items
+Sets inventory available quantity to 0
+Sets inventory status to expired
+Sets inventory inactive
+Creates inventory movement
+Sends notification to Owner/Admin
+Schedule Recommendation
+Run daily after midnight:
+00:05 every day
+POS Logic With Auto Write-off
+If auto write-off includes today, POS should only show inventory where:
+expiry_date is null OR expiry_date > today
+This means products expiring today are not sold.
+21. Notifications and Topbar Counters
+Purpose
+The system has two important topbar counters:
+Alert bell → unresolved inventory alerts
+Message icon → unread system notifications
+Alert Bell
+Counts inventory alerts where:
+status = open or read
+This means unresolved alerts still appear in counter .
+24
+
+--- PAGE 25 ---
+Message Counter
+Counts unread Laravel database notifications.
+System messages include:
+Daily closing needs verification
+Daily closing needs recalculation
+Sales return needs approval
+Stock adjustment needs approval
+Stock transfer needs approval
+Stock transfer ready for dispatch
+Stock transfer needs receiving
+POS expense recorded
+POS expense deleted
+Purchase created
+Automatic expiry write-off completed
+Role-Based Notification Targeting
+Notifications are sent based on permission:
+sales_return.approve → receives sales return approval notifications
+stock_transfer.receive → receives transfer receiving notification
+daily_closing.verify → receives daily closing verification notifications
+Owner/Admin can receive broad business notifications.
+22. Pending Action Detection Command
+Purpose
+Detects pending system actions and notifies the responsible users.
+Command
+system:detect-pending-actions
+What It Detects
+Daily closings with status submitted
+Daily closings with status needs_recalculation
+Sales returns with status draft
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+25
+
+--- PAGE 26 ---
+Stock adjustments with status draft
+Stock transfers with status draft
+Stock transfers with status approved
+Stock transfers with status dispatched
+Purchases with status draft
+Schedule Recommendation
+Run every 5 minutes:
+everyFiveMinutes
+Duplicate Prevention
+The system uses pending_key to avoid sending the same unread notification again and again.
+23. Quick Search
+Purpose
+Topbar quick search helps users find records fast without opening many pages.
+Search Targets
+Products
+Inventory batches
+Sales receipts
+Purchases
+Sales returns
+Stock adjustments
+Stock transfers
+Expenses
+Role-Based Search
+Search results depend on permission.
+Examples:
+User without purchase.view should not see purchases.
+Non-owner branch user should only see branch-related records.
+User without stock_transfer.view should not see transfer records.
+• 
+• 
+• 
+26
+
+--- PAGE 27 ---
+Workflow
+User types at least 2 characters
+→ AJAX request goes to quick search endpoint
+→ System checks permissions
+→ Results appear in dropdown
+→ User clicks result
+→ Opens related page
+24. Dashboard Module
+Purpose
+Dashboard gives Owner/Admin and operational users a quick overview of business health.
+Existing Dashboard Metrics
+Sales total
+Sales count
+Customer count
+Expense total
+Gross profit
+Net profit
+Cost sold
+Expected cash
+Counted cash
+Cash difference
+Net margin
+Trend data
+Top products
+Recent sales
+Activity feed
+Important Missing Dashboard Cards To Add
+Inventory Alerts
+Pending Actions
+Stock Value
+Expiry Risk
+Returns
+Cash Difference
+27
+
+--- PAGE 28 ---
+Recommended Dashboard Cards
+Inventory Alerts
+Show:
+Open alerts
+Critical alerts
+Low stock
+Expired/expiring alerts
+Pending Actions
+Show:
+Submitted daily closings
+Closings needing recalculation
+Draft sales returns
+Draft stock adjustments
+Pending stock transfers
+Draft purchases
+Stock Value
+Show:
+Current stock value
+Active batches
+Available base units
+Formula:
+available_quantity_base_units × unit_cost_base
+Expiry Risk
+Show:
+Expiring today
+Expiring in 7 days
+28
+
+--- PAGE 29 ---
+Expiring in 30 days
+Expired value
+Returns
+Show:
+Approved return amount
+Returned cost
+Profit reversed
+Return count
+Cash Difference
+Show:
+Counted cash - Expected cash
+25. Activity Logs / Audit
+Purpose
+Tracks important user actions.
+Examples
+Sale completed
+Stock adjustment created
+Stock adjustment approved
+Stock transfer created
+Stock transfer dispatched
+Stock transfer received
+Daily closing verified
+Expired inventory automatically written off
+Owner/Admin Workflow
+View system activity.
+Search logs.
+Filter by log name.
+Investigate who performed actions.
+• 
+• 
+• 
+• 
+29
+
+--- PAGE 30 ---
+26. AI Module
+Purpose
+AI is optional and controlled by permission.
+Permissions
+ai.use
+ai.use_basic
+ai.history.view
+Role Behavior
+Owner/Admin can use full AI features.
+Pharmacist may use AI for assistance and history.
+Cashier/Storekeeper may use basic AI only.
+AI should never bypass permissions. It should only explain or assist based on allowed data.
+27. Prescription Module
+Purpose
+Manages prescription-related pharmacy work.
+Pharmacist Workflow
+View prescriptions.
+Manage prescriptions.
+Link prescription work with sales where needed.
+Owner/Admin Workflow
+View prescription reports.
+Monitor prescription operations.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+30
+
+--- PAGE 31 ---
+28. Complete Role Workflow Summary
+Owner/Admin Daily Workflow
+Login
+→ Dashboard
+→ Check Inventory Alerts
+→ Check System Messages
+→ Review Pending Actions
+→ Approve sales returns
+→ Approve stock adjustments
+→ Approve transfers
+→ Verify daily closings
+→ Review reports
+→ Monitor audit logs
+Cashier Daily Workflow
+Login
+→ Open POS
+→ Sell products
+→ Print receipts
+→ Record POS expenses
+→ View today sales
+→ Create return request if customer returns item
+→ Submit daily closing
+Pharmacist Daily Workflow
+Login
+→ Use POS when needed
+→ Manage prescriptions
+→ View stock and expiry alerts
+→ Create sales return request
+→ Create stock adjustment request
+→ Receive stock transfer if assigned
+→ Submit daily closing
+31
+
+--- PAGE 32 ---
+Storekeeper Daily Workflow
+Login
+→ Check stock levels
+→ Check inventory alerts
+→ Create purchase
+→ Receive purchase
+→ Create stock adjustment request
+→ Create stock transfer
+→ Dispatch stock transfer
+→ Receive stock transfer
+→ View stock and purchase reports
+29. Recommended Scheduler Setup
+In production, the server should run Laravel scheduler every minute:
+* * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1
+Recommended scheduled commands:
+inventory:auto-writeoff-expired → daily at 00:05
+inventory:generate-alerts → daily at 07:00
+system:detect-pending-actions → every 5 minutes
+30. MVP Completion Checklist
+Core Sales
+POS selling works.
+Receipt printing works.
+Product unit conversion works.
+Inventory decreases correctly.
+Stock
+Purchase increases inventory.
+Sales reduce inventory.
+Returns restore stock only when sellable.
+Adjustments correct stock.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+32
+
+--- PAGE 33 ---
+Transfers move stock between branches.
+Expired stock can be automatically written off.
+Finance
+Expenses are recorded.
+Daily closing calculates expected cash.
+Reports show sales, expenses, profit, and stock.
+Alerts
+Low stock alert works.
+Expiring soon alert works.
+Expired alert works.
+Topbar counters work.
+Owner/Admin receives important notifications.
+Roles
+Owner/Admin can approve and manage.
+Cashier can sell and close day.
+Pharmacist can sell, manage prescriptions, and request actions.
+Storekeeper can manage stock, purchases, and transfers.
+31. Final System Position
+At this stage, the system is no longer just a POS. It is a controlled pharmacy operations platform:
+POS + Inventory + Purchases + Expenses + Daily Closing + Returns + Transfers + 
+Adjustments + Alerts + Notifications + Reports + Dashboard
+The strongest MVP value is:
+Accurate stock
+Fast sales
+Controlled approvals
+Expiry safety
+Owner visibility
+Branch accountability
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+33
