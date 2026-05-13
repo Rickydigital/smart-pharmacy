@@ -16,6 +16,9 @@ class SalesReturn extends Model
         'branch_id',
         'sale_id',
         'return_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'return_date',
         'subtotal_amount',
         'refund_amount',
@@ -28,6 +31,8 @@ class SalesReturn extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -37,6 +42,8 @@ class SalesReturn extends Model
             'subtotal_amount' => 'decimal:2',
             'refund_amount' => 'decimal:2',
             'approved_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
         ];
     }
 

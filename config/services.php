@@ -28,6 +28,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+   'smart_control' => [
+        'enabled' => env('SMARTCONTROL_ENABLED', true),
+        'url' => env('SMARTCONTROL_URL'),
+        'project' => env('SMARTCONTROL_PROJECT'),
+        'license_key' => env('SMARTCONTROL_LICENSE_KEY'),
+        'client_key' => env('SMARTCONTROL_CLIENT_KEY'),
+        'client_secret' => env('SMARTCONTROL_CLIENT_SECRET'),
+        'instance_id' => env('SMARTCONTROL_INSTANCE_ID'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

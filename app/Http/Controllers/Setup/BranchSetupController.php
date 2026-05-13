@@ -33,7 +33,17 @@ class BranchSetupController extends Controller implements HasMiddleware
                 Rule::unique('branches', 'code')->where('pharmacy_id', $pharmacy->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
+            'whatsapp' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:255'],
+
+            'street_id' => ['nullable', 'integer', 'exists:streets,id'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+
+            'opens_at' => ['nullable', 'date_format:H:i'],
+            'closes_at' => ['nullable', 'date_format:H:i'],
+            'is_24_hours' => ['nullable', 'boolean'],
+
             'is_main' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -51,7 +61,14 @@ class BranchSetupController extends Controller implements HasMiddleware
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
             'phone' => $validated['phone'] ?? null,
+            'whatsapp' => $validated['whatsapp'] ?? null,
             'address' => $validated['address'] ?? null,
+            'street_id' => $validated['street_id'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'opens_at' => $request->boolean('is_24_hours') ? null : ($validated['opens_at'] ?? null),
+            'closes_at' => $request->boolean('is_24_hours') ? null : ($validated['closes_at'] ?? null),
+            'is_24_hours' => $request->boolean('is_24_hours'),
             'is_main' => $makeMain,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -72,7 +89,17 @@ class BranchSetupController extends Controller implements HasMiddleware
                     ->ignore($branch->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
+            'whatsapp' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:255'],
+
+            'street_id' => ['nullable', 'integer', 'exists:streets,id'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+
+            'opens_at' => ['nullable', 'date_format:H:i'],
+            'closes_at' => ['nullable', 'date_format:H:i'],
+            'is_24_hours' => ['nullable', 'boolean'],
+
             'is_main' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -90,7 +117,14 @@ class BranchSetupController extends Controller implements HasMiddleware
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
             'phone' => $validated['phone'] ?? null,
+            'whatsapp' => $validated['whatsapp'] ?? null,
             'address' => $validated['address'] ?? null,
+            'street_id' => $validated['street_id'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'opens_at' => $request->boolean('is_24_hours') ? null : ($validated['opens_at'] ?? null),
+            'closes_at' => $request->boolean('is_24_hours') ? null : ($validated['closes_at'] ?? null),
+            'is_24_hours' => $request->boolean('is_24_hours'),
             'is_main' => $makeMain ?: $branch->is_main,
             'is_active' => $request->boolean('is_active'),
         ]);

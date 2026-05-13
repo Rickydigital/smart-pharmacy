@@ -16,6 +16,9 @@ class Sale extends Model
         'pharmacy_id',
         'branch_id',
         'sale_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'customer_name',
         'customer_phone',
         'sale_type',
@@ -32,6 +35,8 @@ class Sale extends Model
         'notes',
         'created_by',
         'sold_at',
+        'synced_at',
+        'offline_created_at',
         'returned_amount',
         'returned_base_units',
     ];
@@ -47,6 +52,8 @@ class Sale extends Model
             'change_amount' => 'decimal:2',
             'balance_amount' => 'decimal:2',
             'sold_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
             'returned_amount' => 'decimal:2',
             'returned_base_units' => 'integer',
         ];

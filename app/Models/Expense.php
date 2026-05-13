@@ -15,6 +15,9 @@ class Expense extends Model
         'branch_id',
         'expense_category_id',
         'expense_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'expense_date',
         'title',
         'amount',
@@ -26,6 +29,8 @@ class Expense extends Model
         'voided_by',
         'voided_at',
         'void_reason',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -34,6 +39,8 @@ class Expense extends Model
             'expense_date' => 'date',
             'amount' => 'decimal:2',
             'voided_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
         ];
     }
 

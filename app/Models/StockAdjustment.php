@@ -15,6 +15,9 @@ class StockAdjustment extends Model
         'pharmacy_id',
         'branch_id',
         'adjustment_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'adjustment_date',
         'adjustment_type',
         'status',
@@ -27,6 +30,8 @@ class StockAdjustment extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -37,6 +42,8 @@ class StockAdjustment extends Model
             'total_quantity_base_units' => 'integer',
             'total_cost' => 'decimal:2',
             'approved_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
         ];
     }
 

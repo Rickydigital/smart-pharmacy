@@ -16,7 +16,7 @@ Schedule::command('system:detect-pending-actions')
     ->everyFiveMinutes()
     ->withoutOverlapping();
 
-Schedule::command('system:detect-pending-actions')
+Schedule::command('smart-control:sync-branches')
     ->everyFiveMinutes()
     ->withoutOverlapping();
 

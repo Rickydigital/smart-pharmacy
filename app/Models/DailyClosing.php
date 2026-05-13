@@ -15,6 +15,9 @@ class DailyClosing extends Model
         'branch_id',
         'cashier_id',
         'closing_date',
+        'mobile_reference',
+        'device_name',
+        'app_version',
 
         'cash_sales_amount',
         'mobile_money_sales_amount',
@@ -43,6 +46,8 @@ class DailyClosing extends Model
         'verified_by',
         'verified_at',
         'created_by',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -69,6 +74,8 @@ class DailyClosing extends Model
 
             'submitted_at' => 'datetime',
             'verified_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
         ];
     }
 

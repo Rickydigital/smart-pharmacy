@@ -17,6 +17,9 @@ class Purchase extends Model
         'branch_id',
         'supplier_id',
         'purchase_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'supplier_invoice_no',
         'purchase_date',
         'received_date',
@@ -32,6 +35,8 @@ class Purchase extends Model
         'created_by',
         'received_by',
         'received_at',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -40,6 +45,8 @@ class Purchase extends Model
             'purchase_date' => 'date',
             'received_date' => 'date',
             'received_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
             'subtotal_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
@@ -73,6 +80,7 @@ class Purchase extends Model
     {
         return $this->hasMany(Inventory::class);
     }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -109,9 +117,9 @@ class Purchase extends Model
     }
 
     public function movements(): MorphMany
-{
-    return $this->morphMany(InventoryMovement::class, 'source');
-}
+    {
+        return $this->morphMany(InventoryMovement::class, 'source');
+    }
 
     public function isUnpaid(): bool
     {

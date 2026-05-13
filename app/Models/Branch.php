@@ -16,9 +16,17 @@ class Branch extends Model
         'name',
         'code',
         'phone',
+        'whatsapp',
         'address',
+        'street_id',
+        'latitude',
+        'longitude',
+        'opens_at',
+        'closes_at',
+        'is_24_hours',
         'is_main',
         'is_active',
+        'last_location_synced_at',
     ];
 
     protected function casts(): array
@@ -26,7 +34,29 @@ class Branch extends Model
         return [
             'is_main' => 'boolean',
             'is_active' => 'boolean',
+            'is_24_hours' => 'boolean',
+            'opens_at' => 'datetime:H:i',
+            'closes_at' => 'datetime:H:i',
+            'last_location_synced_at' => 'datetime',
         ];
+    }
+
+    public function street(): BelongsTo
+    {
+        return $this->belongsTo(Street::class);
+    }
+
+    public function getFullLocationAttribute(): string
+    {
+        $this->loadMissing('street.ward.district.region.country');
+
+        return collect([
+            $this->street?->ward?->district?->region?->country?->name,
+            $this->street?->ward?->district?->region?->name,
+            $this->street?->ward?->district?->name,
+            $this->street?->ward?->name,
+            $this->street?->name,
+        ])->filter()->implode(', ');
     }
 
     public function pharmacy(): BelongsTo

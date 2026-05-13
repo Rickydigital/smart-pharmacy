@@ -24,6 +24,22 @@ class EnsureSmartControlAllowed
         }
 
         if (! $guard->allowed()) {
+            if ($request->expectsJson()) {
+                $request->user()?->currentAccessToken()?->delete();
+
+                Auth::guard('web')->logout();
+
+                if ($request->hasSession()) {
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $guard->message(),
+                ], 423);
+            }
+
             Auth::guard('web')->logout();
 
             $request->session()->invalidate();

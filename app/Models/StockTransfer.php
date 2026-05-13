@@ -16,6 +16,9 @@ class StockTransfer extends Model
         'source_branch_id',
         'destination_branch_id',
         'transfer_no',
+        'mobile_reference',
+        'device_name',
+        'app_version',
         'transfer_date',
         'status',
         'total_items',
@@ -31,6 +34,8 @@ class StockTransfer extends Model
         'approved_at',
         'dispatched_at',
         'received_at',
+        'synced_at',
+        'offline_created_at',
     ];
 
     protected function casts(): array
@@ -43,6 +48,8 @@ class StockTransfer extends Model
             'approved_at' => 'datetime',
             'dispatched_at' => 'datetime',
             'received_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'offline_created_at' => 'datetime',
         ];
     }
 

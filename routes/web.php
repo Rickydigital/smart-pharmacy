@@ -232,6 +232,7 @@ Route::middleware(['auth', 'smart-control'])->group(function () {
         Route::post('/generate', [InventoryAlertController::class, 'generate'])->name('generate');
     });
     
+    
 
     /*
     |--------------------------------------------------------------------------
