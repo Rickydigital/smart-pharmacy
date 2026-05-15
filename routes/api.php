@@ -10,10 +10,13 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryAlertController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\MarketLocalOrderController;
+use App\Http\Controllers\Api\MarketLocalReceivingController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\ProductSetupController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\Public\PublicProductController;
+use App\Http\Controllers\Api\PublicSearchAnalyticsController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\QuickSearchController;
 use App\Http\Controllers\Api\ReportController;
@@ -57,7 +60,11 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::post('/logout-all', [AuthController::class, 'logoutAll'])->name('logout-all');
         Route::put('/password', [AuthController::class, 'updatePassword'])->name('password.update');
-        
+        Route::get('/public-search-analytics', [PublicSearchAnalyticsController::class, 'index']);
+        Route::get('/market/local/products/search', [MarketLocalOrderController::class, 'searchProducts']);
+        Route::post('/market/local/supplier-sale', [MarketLocalOrderController::class, 'createSupplierSale']);
+        Route::get('/market/local/receiving/products/search', [MarketLocalReceivingController::class, 'searchProducts']);
+        Route::post('/market/local/receiving/purchase', [MarketLocalReceivingController::class, 'receiveBuyerPurchase']);
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/quick-search', QuickSearchController::class)->name('quick-search');

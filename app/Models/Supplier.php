@@ -20,6 +20,8 @@ class Supplier extends Model
         'email',
         'address',
         'notes',
+        'supplier_type',
+        'central_tenant_id',
         'is_active',
     ];
 

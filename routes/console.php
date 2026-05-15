@@ -27,3 +27,8 @@ Schedule::command('smart-control:sync')
 Schedule::command('smart-control:heartbeat')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+Schedule::command('smart-control:sync-market-products')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

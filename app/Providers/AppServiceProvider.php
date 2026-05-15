@@ -2,23 +2,22 @@
 
 namespace App\Providers;
 
+use App\Models\Inventory;
+use App\Models\ProductPrice;
+use App\Observers\InventoryMarketSyncObserver;
+use App\Observers\ProductPriceMarketSyncObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Inventory::observe(InventoryMarketSyncObserver::class);
+        ProductPrice::observe(ProductPriceMarketSyncObserver::class);
     }
 }
