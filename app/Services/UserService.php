@@ -16,7 +16,7 @@ class UserService
     {
         $pharmacy = Pharmacy::query()->firstOrFail();
 
-        $query = User::with(['branch', 'roles'])
+        $query = User::with(['branch', 'roles:id,name'])
             ->where('pharmacy_id', $pharmacy->id)
             ->whereDoesntHave('roles', function ($query) {
                 $query->whereIn('name', ['Admin', 'Owner']);
@@ -46,7 +46,14 @@ class UserService
             $query->where('status', $filters['status']);
         }
 
-        return $query->paginate($filters['per_page'] ?? 15);
+        $users = $query->paginate($filters['per_page'] ?? 15);
+
+        $users->getCollection()->transform(function ($user) {
+            $user->role = $user->roles->first()?->name ?? null;
+            return $user;
+        });
+
+        return $users;
     }
 
     public function formData(): array
@@ -89,9 +96,11 @@ class UserService
 
         $user->syncRoles([$data['role']]);
 
+        $user->unsetRelation('roles');
+
         $user->notify(new EmployeeAccountCreatedNotification($username, $plainPassword));
 
-        return $user->load(['branch', 'roles']);
+        return $user->fresh(['branch', 'roles']);
     }
 
     public function update(User $user, array $data): User
@@ -110,7 +119,9 @@ class UserService
 
         $user->syncRoles([$data['role']]);
 
-        return $user->load(['branch', 'roles']);
+        $user->unsetRelation('roles');
+
+        return $user->fresh(['branch', 'roles']);
     }
 
     public function resetPassword(User $user): void

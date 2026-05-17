@@ -23,7 +23,8 @@ class IntelligenceController extends Controller
 
         $data = $this->dashboard->dashboard(
             pharmacyId: $user->pharmacy_id,
-            branchId: $request->integer('branch_id') ?: null
+            branchId: $request->integer('branch_id') ?: null,
+            month: $request->get('month')
         );
 
         $branches = Branch::query()
@@ -38,6 +39,7 @@ class IntelligenceController extends Controller
             'data' => [
                 'filters' => [
                     'selected_branch_id' => $request->integer('branch_id') ?: null,
+                    'selected_month' => $request->get('month', now()->format('Y-m')),
                     'branches' => $branches,
                 ],
                 'dashboard' => $data,

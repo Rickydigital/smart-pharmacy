@@ -23,7 +23,8 @@ class IntelligenceController extends Controller
 
     $data = $this->dashboard->dashboard(
         pharmacyId: $pharmacyId,
-        branchId: $request->integer('branch_id') ?: null
+        branchId: $request->integer('branch_id') ?: null,
+        month: $request->get('month')
     );
 
     return view('intelligence.index', [
