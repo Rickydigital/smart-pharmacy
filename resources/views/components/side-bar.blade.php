@@ -525,6 +525,15 @@
                 </li>
                 @endcanany
 
+                @can('intelligence.view')
+                    <li>
+                        <a href="{{ route('intelligence.index') }}">
+                            <i class="fa fa-brain"></i>
+                            <span>Intelligence</span>
+                        </a>
+                    </li>
+                @endcan
+
                 {{-- AI --}}
                 @canany(['ai.use', 'ai.use_basic', 'ai.history.view'])
                 <li class="menu-title">AI Assistant</li>

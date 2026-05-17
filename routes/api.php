@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BusinessCardController;
 use App\Http\Controllers\Api\DailyClosingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\IntelligenceController;
 use App\Http\Controllers\Api\InventoryAlertController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LocationController;
@@ -75,6 +76,18 @@ Route::prefix('v1')->name('api.')->group(function () {
             Route::get('/download', [BusinessCardController::class, 'download'])->name('download');
             Route::get('/print', [BusinessCardController::class, 'print'])->name('print');
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Intelligence
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('intelligence')
+            ->name('intelligence.')
+            ->group(function () {
+                Route::get('/dashboard', [IntelligenceController::class, 'index'])
+                    ->name('dashboard');
+            });
 
         Route::prefix('setup')->name('setup.')->group(function () {
             Route::get('/', [SetupController::class, 'index'])->name('index');

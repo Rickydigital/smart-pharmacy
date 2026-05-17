@@ -9,7 +9,7 @@
 
 <div class="container-fluid report-page">
     <div class="card report-hero mb-4">
-        @include('reports.partials._export_buttons', ['reportKey' => 'center'])
+        @include('reports.partials._export_buttons', ['reportKey' => 'stock'])
         <div class="card-body">
             <div class="d-flex align-items-center" style="gap: 13px;">
                 <span class="report-icon"><i class="mdi mdi-warehouse"></i></span>

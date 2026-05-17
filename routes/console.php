@@ -32,3 +32,7 @@ Schedule::command('smart-control:sync-market-products')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('intelligence:generate')
+    ->dailyAt('02:00')
+    ->withoutOverlapping();

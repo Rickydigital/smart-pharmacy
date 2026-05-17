@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Api\IntelligenceController;
 use App\Http\Controllers\BusinessCardController;
 use App\Http\Controllers\DailyClosingController;
 use App\Http\Controllers\DashboardController;
@@ -293,6 +294,12 @@ Route::middleware(['auth', 'smart-control'])->group(function () {
         Route::patch('/{dailyClosing}/recalculate', [DailyClosingController::class, 'recalculate'])->name('recalculate');
     });
 
+    Route::prefix('intelligence')
+    ->name('intelligence.')
+    ->group(function () {
+        Route::get('/', [IntelligenceController::class, 'index'])
+            ->name('index');
+    });
     /*
     |--------------------------------------------------------------------------
     | Reports

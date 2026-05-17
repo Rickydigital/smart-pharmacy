@@ -2,22 +2,26 @@
 
 namespace App\Services\Reports;
 
+use App\Exports\Reports\ReportTableExport;
 use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\Inventory;
 use App\Models\InventoryMovement;
-use App\Exports\Reports\ReportTableExport;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Illuminate\Http\Response as HttpResponse;
 use App\Models\Pharmacy;
 use App\Models\Purchase;
+use App\Models\PurchaseItem;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
+use App\Models\StockAdjustmentItem;
+use App\Models\StockTransferItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportDataService
 {
@@ -59,18 +63,14 @@ class ReportDataService
             'sales_total' => $salesTotal,
             'sales_paid' => (float) (clone $salesQuery)->sum('paid_amount'),
             'discount_total' => (float) (clone $salesQuery)->sum('discount_amount'),
-
             'purchase_count' => (clone $purchaseQuery)->count(),
             'purchase_total' => (float) (clone $purchaseQuery)->sum('total_amount'),
             'purchase_paid' => (float) (clone $purchaseQuery)->sum('paid_amount'),
-
             'profit_total' => $grossProfit,
             'cost_total' => $costTotal,
-
             'expense_count' => (clone $expenseQuery)->count(),
             'expense_total' => $expenseTotal,
             'cash_expense_total' => (float) (clone $expenseQuery)->where('payment_method', 'cash')->sum('amount'),
-
             'net_profit' => $netProfit,
         ];
 
@@ -110,19 +110,13 @@ class ReportDataService
 
         $topProducts = SaleItem::query()
             ->with(['product', 'productUnit.unit'])
-            ->selectRaw('
-                product_id,
-                product_unit_id,
-                SUM(quantity) as quantity_sold,
-                SUM(line_total) as sales_amount,
-                SUM(profit_amount) as profit_amount
-            ')
+            ->selectRaw('product_id, product_unit_id, SUM(quantity) as quantity_sold, SUM(line_total) as sales_amount, SUM(profit_amount) as profit_amount')
             ->where('pharmacy_id', $pharmacy->id)
             ->whereHas('sale', function ($query) use ($dateFrom, $dateTo, $branchId) {
                 $query->whereIn('status', ['completed', 'partially_returned'])
                     ->whereDate('sold_at', '>=', $dateFrom)
                     ->whereDate('sold_at', '<=', $dateTo)
-                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
             })
             ->groupBy('product_id', 'product_unit_id')
             ->orderByDesc('sales_amount')
@@ -136,7 +130,7 @@ class ReportDataService
             ->where('is_active', true)
             ->where('available_quantity_base_units', '>', 0)
             ->where('available_quantity_base_units', '<=', 10)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->orderBy('available_quantity_base_units')
             ->limit(10)
             ->get();
@@ -150,7 +144,7 @@ class ReportDataService
             ->whereNotNull('expiry_date')
             ->whereDate('expiry_date', '>=', now()->toDateString())
             ->whereDate('expiry_date', '<=', now()->addDays(30)->toDateString())
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->orderBy('expiry_date')
             ->limit(10)
             ->get();
@@ -158,7 +152,7 @@ class ReportDataService
         $recentMovements = InventoryMovement::query()
             ->with(['product', 'branch', 'creator'])
             ->where('pharmacy_id', $pharmacy->id)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->latest('moved_at')
             ->limit(10)
             ->get();
@@ -200,9 +194,9 @@ class ReportDataService
             ->where('pharmacy_id', $pharmacy->id)
             ->whereDate('sold_at', '>=', $dateFrom)
             ->whereDate('sold_at', '<=', $dateTo)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($paymentMethod, fn ($q) => $q->where('payment_method', $paymentMethod))
-            ->when($saleType, fn ($q) => $q->where('sale_type', $saleType));
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($paymentMethod, fn($q) => $q->where('payment_method', $paymentMethod))
+            ->when($saleType, fn($q) => $q->where('sale_type', $saleType));
 
         $sales = (clone $query)
             ->latest('sold_at')
@@ -218,16 +212,7 @@ class ReportDataService
             'discount' => (float) (clone $completed)->sum('discount_amount'),
         ];
 
-        return compact(
-            'sales',
-            'summary',
-            'branches',
-            'dateFrom',
-            'dateTo',
-            'branchId',
-            'paymentMethod',
-            'saleType'
-        );
+        return compact('sales', 'summary', 'branches', 'dateFrom', 'dateTo', 'branchId', 'paymentMethod', 'saleType');
     }
 
     public function stock(Request $request): array
@@ -242,18 +227,7 @@ class ReportDataService
 
         $branches = $this->branches($pharmacy->id);
 
-        $query = Inventory::query()
-            ->with(['product.baseUnit', 'branch', 'purchase'])
-            ->where('pharmacy_id', $pharmacy->id)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($status, fn ($q) => $q->where('status', $status))
-            ->when($risk === 'low', fn ($q) => $q->where('available_quantity_base_units', '<=', 10))
-            ->when($risk === 'expired', fn ($q) => $q->whereDate('expiry_date', '<', now()->toDateString()))
-            ->when($risk === 'expiring', function ($q) {
-                $q->whereNotNull('expiry_date')
-                    ->whereDate('expiry_date', '>=', now()->toDateString())
-                    ->whereDate('expiry_date', '<=', now()->addDays(30)->toDateString());
-            });
+        $query = $this->stockQuery($request, $pharmacy->id);
 
         $inventories = (clone $query)
             ->orderByRaw('CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END')
@@ -265,24 +239,15 @@ class ReportDataService
         $summary = [
             'items' => (clone $query)->count(),
             'available_qty' => (int) (clone $query)->sum('available_quantity_base_units'),
-            'stock_value' => (float) ((clone $query)
-                ->selectRaw('SUM(available_quantity_base_units * unit_cost_base) as value')
-                ->value('value') ?? 0),
+            'stock_value' => (float) ((clone $query)->selectRaw('SUM(available_quantity_base_units * unit_cost_base) as value')->value('value') ?? 0),
             'low_stock' => Inventory::query()
                 ->where('pharmacy_id', $pharmacy->id)
                 ->where('available_quantity_base_units', '<=', 10)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->count(),
         ];
 
-        return compact(
-            'inventories',
-            'summary',
-            'branches',
-            'branchId',
-            'status',
-            'risk'
-        );
+        return compact('inventories', 'summary', 'branches', 'branchId', 'status', 'risk');
     }
 
     public function purchases(Request $request): array
@@ -304,13 +269,10 @@ class ReportDataService
             ->where('pharmacy_id', $pharmacy->id)
             ->whereDate('purchase_date', '>=', $dateFrom)
             ->whereDate('purchase_date', '<=', $dateTo)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($status, fn ($q) => $q->where('status', $status));
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($status, fn($q) => $q->where('status', $status));
 
-        $purchases = (clone $query)
-            ->latest('purchase_date')
-            ->paginate(20)
-            ->withQueryString();
+        $purchases = (clone $query)->latest('purchase_date')->paginate(20)->withQueryString();
 
         $summary = [
             'count' => (clone $query)->count(),
@@ -319,15 +281,7 @@ class ReportDataService
             'balance' => (float) (clone $query)->sum('balance_amount'),
         ];
 
-        return compact(
-            'purchases',
-            'summary',
-            'branches',
-            'dateFrom',
-            'dateTo',
-            'branchId',
-            'status'
-        );
+        return compact('purchases', 'summary', 'branches', 'dateFrom', 'dateTo', 'branchId', 'status');
     }
 
     public function profit(Request $request): array
@@ -342,20 +296,9 @@ class ReportDataService
 
         $branches = $this->branches($pharmacy->id);
 
-        $query = SaleItem::query()
-            ->with(['sale.branch', 'sale.creator', 'product', 'productUnit.unit'])
-            ->where('pharmacy_id', $pharmacy->id)
-            ->whereHas('sale', function ($q) use ($dateFrom, $dateTo, $branchId) {
-                $q->whereIn('status', ['completed', 'partially_returned'])
-                    ->whereDate('sold_at', '>=', $dateFrom)
-                    ->whereDate('sold_at', '<=', $dateTo)
-                    ->when($branchId, fn ($saleQuery) => $saleQuery->where('branch_id', $branchId));
-            });
+        $query = $this->saleItemsQuery($request, $pharmacy->id);
 
-        $items = (clone $query)
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+        $items = (clone $query)->latest()->paginate(20)->withQueryString();
 
         $expenseQuery = $this->expenseQuery($pharmacy->id, $dateFrom, $dateTo, $branchId);
 
@@ -367,26 +310,12 @@ class ReportDataService
         ];
 
         $summary['net_profit'] = $summary['gross_profit'] - $summary['expenses'];
-
-        $summary['gross_margin'] = $summary['sales'] > 0
-            ? round(($summary['gross_profit'] / $summary['sales']) * 100, 2)
-            : 0;
-
-        $summary['net_margin'] = $summary['sales'] > 0
-            ? round(($summary['net_profit'] / $summary['sales']) * 100, 2)
-            : 0;
-
+        $summary['gross_margin'] = $summary['sales'] > 0 ? round(($summary['gross_profit'] / $summary['sales']) * 100, 2) : 0;
+        $summary['net_margin'] = $summary['sales'] > 0 ? round(($summary['net_profit'] / $summary['sales']) * 100, 2) : 0;
         $summary['profit'] = $summary['gross_profit'];
         $summary['margin'] = $summary['gross_margin'];
 
-        return compact(
-            'items',
-            'summary',
-            'branches',
-            'dateFrom',
-            'dateTo',
-            'branchId'
-        );
+        return compact('items', 'summary', 'branches', 'dateFrom', 'dateTo', 'branchId');
     }
 
     public function expenses(Request $request): array
@@ -408,15 +337,11 @@ class ReportDataService
             ->where('pharmacy_id', $pharmacy->id)
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($paymentMethod, fn ($q) => $q->where('payment_method', $paymentMethod))
-            ->when($status, fn ($q) => $q->where('status', $status));
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($paymentMethod, fn($q) => $q->where('payment_method', $paymentMethod))
+            ->when($status, fn($q) => $q->where('status', $status));
 
-        $expenses = (clone $query)
-            ->latest('expense_date')
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+        $expenses = (clone $query)->latest('expense_date')->latest()->paginate(20)->withQueryString();
 
         $summary = [
             'count' => (clone $query)->count(),
@@ -432,17 +357,7 @@ class ReportDataService
             ->orderByDesc('total_amount')
             ->get();
 
-        return compact(
-            'expenses',
-            'summary',
-            'branches',
-            'categoryBreakdown',
-            'dateFrom',
-            'dateTo',
-            'branchId',
-            'paymentMethod',
-            'status'
-        );
+        return compact('expenses', 'summary', 'branches', 'categoryBreakdown', 'dateFrom', 'dateTo', 'branchId', 'paymentMethod', 'status');
     }
 
     public function prescriptions(Request $request): array
@@ -454,6 +369,596 @@ class ReportDataService
         ];
     }
 
+    public function export(Request $request, string $report): BinaryFileResponse|HttpResponse
+    {
+        $this->guardOwnerReport();
+
+        $format = $request->input('format', 'pdf');
+
+        if (! in_array($format, ['pdf', 'excel'], true)) {
+            abort(422, 'Invalid export format.');
+        }
+
+        $export = $this->buildExportData($request, $report);
+
+        if ($format === 'excel') {
+            return Excel::download(
+                new ReportTableExport(
+                    $export['title'],
+                    $export['headings'],
+                    $export['rows'],
+                    $export['meta'] ?? [],
+                    $export['summary'] ?? []
+                ),
+                $export['filename'] . '.xlsx'
+            );
+        }
+
+        $pdf = Pdf::loadView('reports.exports.table-pdf', [
+            'title' => $export['title'],
+            'subtitle' => $export['subtitle'],
+            'headings' => $export['headings'],
+            'rows' => $export['rows'],
+            'meta' => $export['meta'],
+            'summary' => $export['summary'] ?? [],
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download($export['filename'] . '.pdf');
+    }
+
+    public function buildExportData(Request $request, string $report): array
+    {
+        return match ($report) {
+            'center' => $this->exportCenter($request),
+            'sales' => $this->exportSales($request),
+            'stock' => $this->exportStock($request),
+            'purchases' => $this->exportPurchases($request),
+            'profit' => $this->exportProfit($request),
+            'expenses' => $this->exportExpenses($request),
+            'prescriptions' => $this->exportPrescriptions($request),
+            default => abort(404, 'Report not found.'),
+        };
+    }
+
+    private function exportSales(Request $request): array
+    {
+        $pharmacy = Pharmacy::query()->firstOrFail();
+
+        $rows = $this->saleItemsQuery($request, $pharmacy->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (SaleItem $item) {
+                $sale = $item->sale;
+
+                return [
+                    $sale?->sale_no ?? '-',
+                    $sale?->sold_at?->format('Y-m-d H:i') ?? '-',
+                    $sale?->branch?->name ?? '-',
+                    $this->saleCustomer($sale),
+                    ucfirst((string) ($sale?->sale_type ?? '-')),
+                    str_replace('_', ' ', ucfirst((string) ($sale?->payment_method ?? '-'))),
+                    $item->product?->code ?? '-',
+                    $item->product?->name ?? '-',
+                    $item->productUnit?->unit?->name ?? '-',
+                    (float) $item->quantity,
+                    $this->money($item->unit_price ?? 0),
+                    $this->money($item->line_total ?? 0),
+                    $this->money($item->total_cost ?? 0),
+                    $this->money($item->profit_amount ?? 0),
+                    $sale?->status ?? '-',
+                    $sale?->creator?->name ?? $sale?->creator?->username ?? '-',
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $this->exportPayload(
+            title: 'Sales Report',
+            subtitle: 'Full item-level sales export',
+            filename: 'sales-report',
+            headings: [
+                'Sale No',
+                'Sold At',
+                'Branch',
+                'Customer',
+                'Sale Type',
+                'Payment',
+                'Product Code',
+                'Product',
+                'Unit',
+                'Qty',
+                'Unit Price',
+                'Sales Value',
+                'Cost Value',
+                'Profit',
+                'Status',
+                'Cashier',
+            ],
+            rows: $rows,
+            request: $request,
+            summary: [
+                'rows' => count($rows),
+                'sales_value' => $this->sumColumn($rows, 11),
+                'cost_value' => $this->sumColumn($rows, 12),
+                'profit' => $this->sumColumn($rows, 13),
+            ]
+        );
+    }
+
+    private function exportStock(Request $request): array
+    {
+        $pharmacy = Pharmacy::query()->firstOrFail();
+
+        $isPdf = $request->input('format', 'pdf') === 'pdf';
+
+        $inventories = $this->stockQuery($request, $pharmacy->id)
+            ->with([
+                'branch',
+                'purchase.supplier',
+                'purchaseItem.productUnit.unit',
+                'product.category',
+                'product.productUnits.unit',
+                'product.productUnits.prices',
+                'product.baseUnit',
+                'movements',
+            ])
+            ->orderByRaw('CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('expiry_date')
+            ->latest()
+            ->get();
+
+        $rows = $inventories->map(function (Inventory $inventory) use ($isPdf) {
+            $product = $inventory->product;
+            $prices = $this->basePrices($inventory);
+            $movement = $this->inventoryMovementSummary($inventory);
+
+            $availableQty = (int) $inventory->available_quantity_base_units;
+            $unitCost = (float) $inventory->unit_cost_base;
+            $availableCostValue = $availableQty * $unitCost;
+
+            $expectedRetailValue = $availableQty * $prices['retail'];
+            $expectedWholesaleValue = $availableQty * $prices['wholesale'];
+
+            $sales = $this->inventorySalesValue($inventory);
+            $actualSalesValue = $sales['retail_sales'] + $sales['wholesale_sales'];
+            $soldCost = $movement['sold'] * $unitCost;
+            $profit = $actualSalesValue - $soldCost;
+
+            if ($isPdf) {
+                return [
+                    $product?->name ?? '-',
+                    $inventory->branch?->name ?? '-',
+                    $inventory->batch_no ?? '-',
+                    $inventory->expiry_date?->format('Y-m-d') ?? '-',
+                    $product?->baseUnit?->name ?? '-',
+                    (int) $inventory->received_quantity_base_units,
+                    $movement['sold'],
+                    $availableQty,
+                    $inventory->status,
+                ];
+            }
+
+            return [
+                $product?->code ?? '-',
+                $product?->name ?? '-',
+                $product?->generic_name ?? '-',
+                $product?->category?->name ?? '-',
+                $inventory->branch?->name ?? '-',
+                $inventory->batch_no ?? '-',
+                $inventory->expiry_date?->format('Y-m-d') ?? '-',
+                $product?->baseUnit?->name ?? '-',
+                $this->configuredUnits($inventory),
+                (int) $inventory->received_quantity_base_units,
+                $this->money($inventory->total_cost ?? 0),
+                $movement['sold'],
+                $movement['returned'],
+                $movement['expired'],
+                $movement['adjusted_in'],
+                $movement['adjusted_out'],
+                $movement['transferred_in'],
+                $movement['transferred_out'],
+                $availableQty,
+                $this->money($unitCost),
+                $this->money($availableCostValue),
+                $this->money($prices['retail']),
+                $this->money($prices['wholesale']),
+                $this->money($expectedRetailValue),
+                $this->money($expectedWholesaleValue),
+                $this->money($sales['retail_sales']),
+                $this->money($sales['wholesale_sales']),
+                $this->money($actualSalesValue),
+                $this->money($profit),
+                $inventory->status,
+            ];
+        })->values()->all();
+
+        $headings = $isPdf
+            ? [
+                'Product',
+                'Branch',
+                'Batch No',
+                'Expiry',
+                'Base Unit',
+                'Purchased Qty',
+                'Sold Qty',
+                'Available Qty',
+                'Status',
+            ]
+            : [
+                'Product Code',
+                'Product Name',
+                'Generic Name',
+                'Category',
+                'Branch',
+                'Batch No',
+                'Expiry Date',
+                'Base Unit',
+                'Configured Units',
+                'Purchased Qty Base',
+                'Purchased Value',
+                'Sold Qty Base',
+                'Returned Qty Base',
+                'Expired Qty Base',
+                'Adjusted In',
+                'Adjusted Out',
+                'Transferred In',
+                'Transferred Out',
+                'Available Qty Base',
+                'Cost/Base',
+                'Available Cost Value',
+                'Retail Price/Base',
+                'Wholesale Price/Base',
+                'Expected Retail Value',
+                'Expected Wholesale Value',
+                'Actual Retail Sales',
+                'Actual Wholesale Sales',
+                'Total Sales Value',
+                'Gross Profit',
+                'Status',
+            ];
+
+        return $this->exportPayload(
+            title: 'Inventory Report',
+            subtitle: $isPdf
+                ? 'Inventory availability and batch movement summary'
+                : 'Batch-level inventory control, value, movement and profit report',
+            filename: 'stock-report',
+            headings: $headings,
+            rows: $rows,
+            request: $request,
+            summary: [
+                'batches' => count($rows),
+                'available_qty_base' => $inventories->sum('available_quantity_base_units'),
+            ]
+        );
+    }
+    private function exportPurchases(Request $request): array
+    {
+        $pharmacy = Pharmacy::query()->firstOrFail();
+
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->input('date_to', now()->toDateString());
+        $branchId = $request->input('branch_id');
+        $status = $request->input('status');
+
+        $rows = PurchaseItem::query()
+            ->with(['purchase.branch', 'purchase.supplier', 'purchase.creator', 'product', 'productUnit.unit'])
+            ->where('pharmacy_id', $pharmacy->id)
+            ->whereHas('purchase', function ($query) use ($dateFrom, $dateTo, $branchId, $status) {
+                $query->whereDate('purchase_date', '>=', $dateFrom)
+                    ->whereDate('purchase_date', '<=', $dateTo)
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($status, fn($q) => $q->where('status', $status));
+            })
+            ->latest()
+            ->get()
+            ->map(function (PurchaseItem $item) {
+                $purchase = $item->purchase;
+
+                return [
+                    $purchase?->purchase_no ?? '-',
+                    $purchase?->purchase_date?->format('Y-m-d') ?? '-',
+                    $purchase?->received_date?->format('Y-m-d') ?? '-',
+                    $purchase?->supplier?->name ?? '-',
+                    $purchase?->branch?->name ?? '-',
+                    $item->product?->code ?? '-',
+                    $item->product?->name ?? '-',
+                    $item->batch_no ?? '-',
+                    $item->expiry_date?->format('Y-m-d') ?? '-',
+                    $item->productUnit?->unit?->name ?? '-',
+                    (float) $item->quantity,
+                    (int) $item->quantity_in_base_units,
+                    (int) $item->total_base_units,
+                    $this->money($item->unit_cost ?? 0),
+                    $this->money($item->line_discount ?? 0),
+                    $this->money($item->line_tax ?? 0),
+                    $this->money($item->line_total ?? 0),
+                    $purchase?->payment_status ?? '-',
+                    $purchase?->status ?? '-',
+                    $purchase?->creator?->name ?? $purchase?->creator?->username ?? '-',
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $this->exportPayload(
+            title: 'Purchase Report',
+            subtitle: 'Full item-level purchase export',
+            filename: 'purchase-report',
+            headings: [
+                'Purchase No',
+                'Purchase Date',
+                'Received Date',
+                'Supplier',
+                'Branch',
+                'Product Code',
+                'Product',
+                'Batch No',
+                'Expiry Date',
+                'Purchased Unit',
+                'Qty',
+                'Qty In Base Units',
+                'Total Base Units',
+                'Unit Cost',
+                'Discount',
+                'Tax',
+                'Line Total',
+                'Payment Status',
+                'Purchase Status',
+                'Created By',
+            ],
+            rows: $rows,
+            request: $request,
+            summary: [
+                'rows' => count($rows),
+                'purchase_value' => $this->sumColumn($rows, 16),
+            ]
+        );
+    }
+
+    private function exportProfit(Request $request): array
+    {
+        $pharmacy = Pharmacy::query()->firstOrFail();
+
+        $rows = $this->saleItemsQuery($request, $pharmacy->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (SaleItem $item) {
+                $returns = $this->returnSummaryForSaleItem($item);
+                $grossProfit = (float) $item->profit_amount;
+                $netProfit = $grossProfit - $returns['profit_reversed'];
+
+                return [
+                    $item->sale?->sale_no ?? '-',
+                    $item->sale?->sold_at?->format('Y-m-d H:i') ?? '-',
+                    $item->sale?->branch?->name ?? '-',
+                    ucfirst((string) ($item->sale?->sale_type ?? '-')),
+                    $item->product?->code ?? '-',
+                    $item->product?->name ?? '-',
+                    $item->productUnit?->unit?->name ?? '-',
+                    (float) $item->quantity,
+                    $this->money($item->line_total ?? 0),
+                    $this->money($item->total_cost ?? 0),
+                    $this->money($grossProfit),
+                    $returns['qty'],
+                    $this->money($returns['refund']),
+                    $this->money($returns['cost']),
+                    $this->money($returns['profit_reversed']),
+                    $this->money($netProfit),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $this->exportPayload(
+            title: 'Profit Report',
+            subtitle: 'Item-level profit, return impact and net profit export',
+            filename: 'profit-report',
+            headings: [
+                'Sale No',
+                'Sold At',
+                'Branch',
+                'Sale Type',
+                'Product Code',
+                'Product',
+                'Unit',
+                'Qty Sold',
+                'Sales Value',
+                'Cost Value',
+                'Gross Profit',
+                'Returned Qty',
+                'Refund Amount',
+                'Return Cost',
+                'Profit Reversed',
+                'Net Profit',
+            ],
+            rows: $rows,
+            request: $request,
+            summary: [
+                'rows' => count($rows),
+                'sales_value' => $this->sumColumn($rows, 8),
+                'cost_value' => $this->sumColumn($rows, 9),
+                'gross_profit' => $this->sumColumn($rows, 10),
+                'profit_reversed' => $this->sumColumn($rows, 14),
+                'net_profit' => $this->sumColumn($rows, 15),
+            ]
+        );
+    }
+
+    private function exportExpenses(Request $request): array
+    {
+        $pharmacy = Pharmacy::query()->firstOrFail();
+
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->input('date_to', now()->toDateString());
+        $branchId = $request->input('branch_id');
+        $paymentMethod = $request->input('payment_method');
+        $status = $request->input('status', 'paid');
+
+        $rows = Expense::query()
+            ->with(['branch', 'category', 'creator'])
+            ->where('pharmacy_id', $pharmacy->id)
+            ->whereDate('expense_date', '>=', $dateFrom)
+            ->whereDate('expense_date', '<=', $dateTo)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($paymentMethod, fn($q) => $q->where('payment_method', $paymentMethod))
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->latest('expense_date')
+            ->get()
+            ->map(function ($expense) {
+                return [
+                    $expense->expense_no ?? '-',
+                    $expense->expense_date?->format('Y-m-d') ?? '-',
+                    $expense->title ?? '-',
+                    $expense->category?->name ?? '-',
+                    $expense->branch?->name ?? '-',
+                    $this->money($expense->amount ?? 0),
+                    str_replace('_', ' ', ucfirst((string) $expense->payment_method)),
+                    $expense->reference_no ?? '-',
+                    $expense->status ?? '-',
+                    $expense->creator?->name ?? $expense->creator?->username ?? '-',
+                    $expense->notes ?? '-',
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $this->exportPayload(
+            title: 'Expense Report',
+            subtitle: 'Full operating expense export',
+            filename: 'expense-report',
+            headings: [
+                'Expense No',
+                'Date',
+                'Title',
+                'Category',
+                'Branch',
+                'Amount',
+                'Payment Method',
+                'Reference No',
+                'Status',
+                'Recorded By',
+                'Notes',
+            ],
+            rows: $rows,
+            request: $request,
+            summary: [
+                'rows' => count($rows),
+                'expense_total' => $this->sumColumn($rows, 5),
+            ]
+        );
+    }
+
+    private function exportCenter(Request $request): array
+    {
+        $data = $this->index($request);
+        $summary = $data['summary'];
+
+        $rows = [
+            ['Business Summary', 'Total Sales', $this->money($summary['sales_total']), 'Completed less approved returns'],
+            ['Business Summary', 'Gross Profit', $this->money($summary['profit_total']), 'Sales profit less reversed return profit'],
+            ['Business Summary', 'Expenses', $this->money($summary['expense_total']), 'Paid operating expenses'],
+            ['Business Summary', 'Net Profit', $this->money($summary['net_profit']), 'Gross profit minus expenses'],
+            ['Business Summary', 'Purchases', $this->money($summary['purchase_total']), 'Supplier purchases'],
+            ['Business Summary', 'Cost Sold', $this->money($summary['cost_total']), 'Inventory cost of sold items'],
+            ['Business Summary', 'Gross Margin', $summary['gross_margin'] . '%', '-'],
+            ['Business Summary', 'Net Margin', $summary['net_margin'] . '%', '-'],
+        ];
+
+        foreach ($data['paymentBreakdown'] as $row) {
+            $rows[] = ['Payment Breakdown', $row->payment_method, $this->money($row->total_amount), $row->sales_count . ' receipt(s)'];
+        }
+
+        foreach ($data['saleTypeBreakdown'] as $row) {
+            $rows[] = ['Sale Type Breakdown', $row->sale_type, $this->money($row->total_amount), $row->sales_count . ' receipt(s)'];
+        }
+
+        foreach ($data['expenseBreakdown'] as $row) {
+            $rows[] = ['Expense Breakdown', $row->category?->name ?? 'Uncategorized', $this->money($row->total_amount), $row->expenses_count . ' record(s)'];
+        }
+
+        foreach ($data['topProducts'] as $row) {
+            $rows[] = ['Top Products', $row->product?->name ?? '-', $this->money($row->sales_amount), 'Qty: ' . $row->quantity_sold];
+        }
+
+        foreach ($data['lowStock'] as $inventory) {
+            $rows[] = ['Low Stock', $inventory->product?->name ?? '-', $inventory->available_quantity_base_units, $inventory->branch?->name ?? '-'];
+        }
+
+        foreach ($data['expiringSoon'] as $inventory) {
+            $rows[] = ['Expiring Soon', $inventory->product?->name ?? '-', $inventory->expiry_date?->format('Y-m-d') ?? '-', $inventory->branch?->name ?? '-'];
+        }
+
+        return $this->exportPayload(
+            title: 'Report Center',
+            subtitle: 'Business health summary export',
+            filename: 'report-center',
+            headings: ['Section', 'Metric', 'Value', 'Note'],
+            rows: $rows,
+            request: $request,
+            summary: [
+                'sales_total' => $this->money($summary['sales_total']),
+                'gross_profit' => $this->money($summary['profit_total']),
+                'expenses' => $this->money($summary['expense_total']),
+                'net_profit' => $this->money($summary['net_profit']),
+            ]
+        );
+    }
+
+    private function exportPrescriptions(Request $request): array
+    {
+        return $this->exportPayload(
+            title: 'Prescription Report',
+            subtitle: 'Prescription module is not implemented yet',
+            filename: 'prescription-report',
+            headings: ['Message'],
+            rows: [['Prescription module is not implemented yet.']],
+            request: $request
+        );
+    }
+
+    private function stockQuery(Request $request, int $pharmacyId)
+    {
+        $branchId = $request->input('branch_id');
+        $status = $request->input('status');
+        $risk = $request->input('risk');
+
+        return Inventory::query()
+            ->with(['product.baseUnit', 'branch', 'purchase'])
+            ->where('pharmacy_id', $pharmacyId)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($risk === 'low', fn($q) => $q->where('available_quantity_base_units', '<=', 10))
+            ->when($risk === 'expired', fn($q) => $q->whereDate('expiry_date', '<', now()->toDateString()))
+            ->when($risk === 'expiring', function ($q) {
+                $q->whereNotNull('expiry_date')
+                    ->whereDate('expiry_date', '>=', now()->toDateString())
+                    ->whereDate('expiry_date', '<=', now()->addDays(30)->toDateString());
+            });
+    }
+
+    private function saleItemsQuery(Request $request, int $pharmacyId)
+    {
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->input('date_to', now()->toDateString());
+        $branchId = $request->input('branch_id');
+        $paymentMethod = $request->input('payment_method');
+        $saleType = $request->input('sale_type');
+
+        return SaleItem::query()
+            ->with(['sale.branch', 'sale.creator', 'product', 'productUnit.unit'])
+            ->where('pharmacy_id', $pharmacyId)
+            ->whereHas('sale', function ($q) use ($dateFrom, $dateTo, $branchId, $paymentMethod, $saleType) {
+                $q->whereIn('status', ['completed', 'partially_returned'])
+                    ->whereDate('sold_at', '>=', $dateFrom)
+                    ->whereDate('sold_at', '<=', $dateTo)
+                    ->when($branchId, fn($saleQuery) => $saleQuery->where('branch_id', $branchId))
+                    ->when($paymentMethod, fn($saleQuery) => $saleQuery->where('payment_method', $paymentMethod))
+                    ->when($saleType, fn($saleQuery) => $saleQuery->where('sale_type', $saleType));
+            });
+    }
+
     private function approvedReturnItemsQuery(int $pharmacyId, string $dateFrom, string $dateTo, mixed $branchId)
     {
         return SalesReturnItem::query()
@@ -462,7 +967,7 @@ class ReportDataService
                 $query->where('status', 'approved')
                     ->whereDate('return_date', '>=', $dateFrom)
                     ->whereDate('return_date', '<=', $dateTo)
-                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
             });
     }
 
@@ -473,7 +978,7 @@ class ReportDataService
             ->whereIn('status', ['completed', 'partially_returned'])
             ->whereDate('sold_at', '>=', $dateFrom)
             ->whereDate('sold_at', '<=', $dateTo)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId));
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId));
     }
 
     private function purchaseQuery(int $pharmacyId, string $dateFrom, string $dateTo, mixed $branchId)
@@ -482,7 +987,7 @@ class ReportDataService
             ->where('pharmacy_id', $pharmacyId)
             ->whereDate('purchase_date', '>=', $dateFrom)
             ->whereDate('purchase_date', '<=', $dateTo)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId));
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId));
     }
 
     private function profitItemsQuery(int $pharmacyId, string $dateFrom, string $dateTo, mixed $branchId)
@@ -493,7 +998,7 @@ class ReportDataService
                 $query->whereIn('status', ['completed', 'partially_returned'])
                     ->whereDate('sold_at', '>=', $dateFrom)
                     ->whereDate('sold_at', '<=', $dateTo)
-                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
             });
     }
 
@@ -504,7 +1009,7 @@ class ReportDataService
             ->where('status', 'paid')
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId));
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId));
     }
 
     private function branches(int $pharmacyId)
@@ -517,235 +1022,207 @@ class ReportDataService
             ->get();
     }
 
-    public function export(Request $request, string $report): BinaryFileResponse|HttpResponse
-{
-    $this->guardOwnerReport();
-
-    $format = $request->input('format', 'pdf');
-
-    if (! in_array($format, ['pdf', 'excel'], true)) {
-        abort(422, 'Invalid export format.');
+    private function configuredUnits(Inventory $inventory): string
+    {
+        return $inventory->product?->productUnits
+            ? $inventory->product->productUnits
+            ->sortBy('quantity_in_base_units')
+            ->map(fn($unit) => ($unit->unit?->name ?? '-') . ': ' . (int) $unit->quantity_in_base_units)
+            ->implode(' | ')
+            : '-';
     }
 
-    $export = $this->buildExportData($request, $report);
+    private function basePrices(Inventory $inventory): array
+    {
+        $product = $inventory->product;
 
-    if ($format === 'excel') {
-        return Excel::download(
-            new ReportTableExport($export['title'], $export['headings'], $export['rows']),
-            $export['filename'] . '.xlsx'
-        );
+        if (! $product || ! $product->productUnits) {
+            return ['retail' => 0.0, 'wholesale' => 0.0];
+        }
+
+        $baseUnit = $product->productUnits->firstWhere('is_base', true)
+            ?: $product->productUnits->sortBy('quantity_in_base_units')->first();
+
+        if (! $baseUnit) {
+            return ['retail' => 0.0, 'wholesale' => 0.0];
+        }
+
+        $retail = (float) ($baseUnit->prices?->firstWhere('price_type', 'retail')?->price ?? 0);
+        $wholesale = (float) ($baseUnit->prices?->firstWhere('price_type', 'wholesale')?->price ?? 0);
+
+        return [
+            'retail' => $retail,
+            'wholesale' => $wholesale,
+        ];
     }
 
-    $pdf = Pdf::loadView('reports.exports.table-pdf', [
-        'title' => $export['title'],
-        'subtitle' => $export['subtitle'],
-        'headings' => $export['headings'],
-        'rows' => $export['rows'],
-        'meta' => $export['meta'],
-        'generatedAt' => now(),
-    ])->setPaper('a4', 'landscape');
+    private function inventoryMovementSummary(Inventory $inventory): array
+    {
+        $movements = $inventory->movements ?? collect();
 
-    return $pdf->download($export['filename'] . '.pdf');
-}
+        $sold = (int) $movements
+            ->filter(fn($m) => $m->direction === 'out' && ($m->movement_type === 'sale_out' || $m->source_type === Sale::class))
+            ->sum('quantity_base_units');
 
-public function buildExportData(Request $request, string $report): array
-{
-    return match ($report) {
-        'center' => $this->exportCenter($request),
-        'sales' => $this->exportSales($request),
-        'stock' => $this->exportStock($request),
-        'purchases' => $this->exportPurchases($request),
-        'profit' => $this->exportProfit($request),
-        'expenses' => $this->exportExpenses($request),
-        default => abort(404, 'Report not found.'),
-    };
-}
+        $returned = (int) $movements
+            ->filter(fn($m) => $m->direction === 'in' && in_array($m->movement_type, ['sale_return_in', 'return_in'], true))
+            ->sum('quantity_base_units');
 
-private function exportSales(Request $request): array
-{
-    $data = $this->sales($request);
+        $adjustedIn = (int) $movements
+            ->filter(fn($m) => $m->direction === 'in' && str_contains((string) $m->movement_type, 'adjustment'))
+            ->sum('quantity_base_units');
 
-    $rows = collect($data['sales']->items())->map(function ($sale) {
+        $adjustedOut = (int) $movements
+            ->filter(fn($m) => $m->direction === 'out' && str_contains((string) $m->movement_type, 'adjustment'))
+            ->sum('quantity_base_units');
+
+        $expired = (int) StockAdjustmentItem::query()
+            ->where('inventory_id', $inventory->id)
+            ->where('direction', 'out')
+            ->whereHas('stockAdjustment', fn($q) => $q->where('status', 'approved')->where('adjustment_type', 'expiry'))
+            ->sum('quantity_base_units');
+
+        if ($expired <= 0 && $inventory->status === 'expired') {
+            $expired = (int) $inventory->available_quantity_base_units;
+        }
+
+        $transferredOut = (int) StockTransferItem::query()
+            ->where('source_inventory_id', $inventory->id)
+            ->whereHas('stockTransfer', fn($q) => $q->whereIn('status', ['dispatched', 'received']))
+            ->sum('quantity_base_units');
+
+        $transferredIn = (int) StockTransferItem::query()
+            ->where('destination_inventory_id', $inventory->id)
+            ->whereHas('stockTransfer', fn($q) => $q->where('status', 'received'))
+            ->sum('quantity_base_units');
+
         return [
-            $sale->sale_no,
-            $sale->branch?->name ?? '-',
-            $sale->sale_type,
-            $sale->payment_method,
-            number_format((float) $sale->total_amount, 2),
-            number_format((float) $sale->paid_amount, 2),
-            number_format((float) $sale->discount_amount, 2),
-            $sale->status,
-            optional($sale->sold_at)->format('Y-m-d H:i'),
-            $sale->creator?->name ?? $sale->creator?->username ?? '-',
+            'sold' => $sold,
+            'returned' => $returned,
+            'expired' => $expired,
+            'adjusted_in' => $adjustedIn,
+            'adjusted_out' => $adjustedOut,
+            'transferred_in' => $transferredIn,
+            'transferred_out' => $transferredOut,
         ];
-    })->values()->all();
+    }
 
-    return $this->exportPayload(
-        title: 'Sales Report',
-        subtitle: 'Detailed sales report',
-        filename: 'sales-report',
-        headings: ['Sale No', 'Branch', 'Type', 'Payment', 'Total', 'Paid', 'Discount', 'Status', 'Sold At', 'Cashier'],
-        rows: $rows,
-        data: $data
-    );
-}
+    private function inventorySalesValue(Inventory $inventory): array
+    {
+        $retailSales = 0.0;
+        $wholesaleSales = 0.0;
 
-private function exportStock(Request $request): array
-{
-    $data = $this->stock($request);
+        $saleMovements = ($inventory->movements ?? collect())
+            ->filter(fn($m) => $m->direction === 'out' && ($m->movement_type === 'sale_out' || $m->source_type === Sale::class));
 
-    $rows = collect($data['inventories']->items())->map(function ($inventory) {
+        foreach ($saleMovements as $movement) {
+            if (! $movement->source_id) {
+                continue;
+            }
+
+            $saleItems = SaleItem::query()
+                ->with(['sale', 'productUnit'])
+                ->where('sale_id', $movement->source_id)
+                ->where('product_id', $inventory->product_id)
+                ->get();
+
+            $saleItem = $saleItems->first();
+
+            if (! $saleItem) {
+                continue;
+            }
+
+            $baseUnits = max(1, (int) $saleItem->quantity * max(1, (int) ($saleItem->productUnit?->quantity_in_base_units ?? 1)));
+            $pricePerBase = ((float) $saleItem->line_total) / $baseUnits;
+            $movementSales = $pricePerBase * (int) $movement->quantity_base_units;
+
+            if ($saleItem->sale?->sale_type === 'wholesale') {
+                $wholesaleSales += $movementSales;
+            } else {
+                $retailSales += $movementSales;
+            }
+        }
+
         return [
-            $inventory->product?->name ?? '-',
-            $inventory->branch?->name ?? '-',
-            $inventory->batch_no ?? '-',
-            optional($inventory->expiry_date)->format('Y-m-d') ?? '-',
-            $inventory->available_quantity_base_units,
-            number_format((float) $inventory->unit_cost_base, 2),
-            number_format((float) ($inventory->available_quantity_base_units * $inventory->unit_cost_base), 2),
-            $inventory->status,
+            'retail_sales' => $retailSales,
+            'wholesale_sales' => $wholesaleSales,
         ];
-    })->values()->all();
+    }
 
-    return $this->exportPayload(
-        title: 'Stock Report',
-        subtitle: 'Inventory stock report',
-        filename: 'stock-report',
-        headings: ['Product', 'Branch', 'Batch', 'Expiry', 'Available Qty', 'Unit Cost', 'Stock Value', 'Status'],
-        rows: $rows,
-        data: $data
-    );
-}
+    private function returnSummaryForSaleItem(SaleItem $item): array
+    {
+        $items = SalesReturnItem::query()
+            ->where('sale_item_id', $item->id)
+            ->whereHas('salesReturn', fn($q) => $q->where('status', 'approved'))
+            ->get();
 
-private function exportPurchases(Request $request): array
-{
-    $data = $this->purchases($request);
-
-    $rows = collect($data['purchases']->items())->map(function ($purchase) {
         return [
-            $purchase->purchase_no,
-            $purchase->supplier?->name ?? '-',
-            $purchase->branch?->name ?? '-',
-            $purchase->items_count,
-            number_format((float) $purchase->total_amount, 2),
-            number_format((float) $purchase->paid_amount, 2),
-            number_format((float) $purchase->balance_amount, 2),
-            $purchase->status,
-            optional($purchase->purchase_date)->format('Y-m-d'),
+            'qty' => (float) $items->sum('quantity'),
+            'refund' => (float) $items->sum('refund_amount'),
+            'cost' => (float) $items->sum('total_cost'),
+            'profit_reversed' => (float) $items->sum('profit_reversed'),
         ];
-    })->values()->all();
+    }
 
-    return $this->exportPayload(
-        title: 'Purchase Report',
-        subtitle: 'Supplier purchase report',
-        filename: 'purchase-report',
-        headings: ['Purchase No', 'Supplier', 'Branch', 'Items', 'Total', 'Paid', 'Balance', 'Status', 'Date'],
-        rows: $rows,
-        data: $data
-    );
-}
+    private function saleCustomer(?Sale $sale): string
+    {
+        if (! $sale) {
+            return '-';
+        }
 
-private function exportProfit(Request $request): array
-{
-    $data = $this->profit($request);
+        if (method_exists($sale, 'displayCustomer')) {
+            return (string) $sale->displayCustomer();
+        }
 
-    $rows = collect($data['items']->items())->map(function ($item) {
+        return $sale->customer_name ?? $sale->customer?->name ?? '-';
+    }
+
+    private function exportPayload(
+        string $title,
+        string $subtitle,
+        string $filename,
+        array $headings,
+        array $rows,
+        Request $request,
+        array $summary = []
+    ): array {
         return [
-            $item->sale?->sale_no ?? '-',
-            $item->product?->name ?? '-',
-            $item->productUnit?->unit?->name ?? '-',
-            $item->quantity,
-            number_format((float) $item->line_total, 2),
-            number_format((float) $item->total_cost, 2),
-            number_format((float) $item->profit_amount, 2),
-            optional($item->sale?->sold_at)->format('Y-m-d H:i') ?? '-',
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'filename' => $filename . '-' . now()->format('Ymd-His'),
+            'headings' => $headings,
+            'rows' => $rows,
+            'summary' => $summary,
+            'meta' => [
+                'branch' => $this->branchName($request->input('branch_id')),
+                'date_from' => $request->input('date_from', '-'),
+                'date_to' => $request->input('date_to', '-'),
+                'status' => $request->input('status', '-'),
+                'payment_method' => $request->input('payment_method', '-'),
+                'sale_type' => $request->input('sale_type', '-'),
+            ],
         ];
-    })->values()->all();
+    }
 
-    return $this->exportPayload(
-        title: 'Profit Report',
-        subtitle: 'Gross profit and item margin report',
-        filename: 'profit-report',
-        headings: ['Sale No', 'Product', 'Unit', 'Qty', 'Sales', 'Cost', 'Profit', 'Sold At'],
-        rows: $rows,
-        data: $data
-    );
-}
+    private function branchName(mixed $branchId): string
+    {
+        if (! $branchId) {
+            return 'All branches';
+        }
 
-private function exportExpenses(Request $request): array
-{
-    $data = $this->expenses($request);
+        return Branch::query()->whereKey($branchId)->value('name') ?? 'Selected branch';
+    }
 
-    $rows = collect($data['expenses']->items())->map(function ($expense) {
-        return [
-            $expense->expense_no,
-            $expense->title,
-            $expense->category?->name ?? '-',
-            $expense->branch?->name ?? '-',
-            number_format((float) $expense->amount, 2),
-            $expense->payment_method,
-            $expense->reference_no ?? '-',
-            $expense->status,
-            optional($expense->expense_date)->format('Y-m-d'),
-            $expense->creator?->name ?? $expense->creator?->username ?? '-',
-        ];
-    })->values()->all();
+    private function money(mixed $value): string
+    {
+        return number_format((float) $value, 2, '.', '');
+    }
 
-    return $this->exportPayload(
-        title: 'Expense Report',
-        subtitle: 'Operating expense report',
-        filename: 'expense-report',
-        headings: ['Expense No', 'Title', 'Category', 'Branch', 'Amount', 'Payment', 'Reference', 'Status', 'Date', 'Recorded By'],
-        rows: $rows,
-        data: $data
-    );
-}
+    private function sumColumn(array $rows, int $index): string
+    {
+        return $this->money(collect($rows)->sum(fn($row) => (float) str_replace(',', '', (string) ($row[$index] ?? 0))));
+    }
 
-private function exportCenter(Request $request): array
-{
-    $data = $this->index($request);
-    $summary = $data['summary'];
-
-    $rows = [
-        ['Total Sales', number_format((float) $summary['sales_total'], 2)],
-        ['Gross Profit', number_format((float) $summary['profit_total'], 2)],
-        ['Expenses', number_format((float) $summary['expense_total'], 2)],
-        ['Net Profit', number_format((float) $summary['net_profit'], 2)],
-        ['Purchases', number_format((float) $summary['purchase_total'], 2)],
-        ['Cost Sold', number_format((float) $summary['cost_total'], 2)],
-    ];
-
-    return $this->exportPayload(
-        title: 'Report Center',
-        subtitle: 'Business health summary',
-        filename: 'report-center',
-        headings: ['Metric', 'Value'],
-        rows: $rows,
-        data: $data
-    );
-}
-
-private function exportPayload(
-    string $title,
-    string $subtitle,
-    string $filename,
-    array $headings,
-    array $rows,
-    array $data
-): array {
-    return [
-        'title' => $title,
-        'subtitle' => $subtitle,
-        'filename' => $filename . '-' . now()->format('Ymd-His'),
-        'headings' => $headings,
-        'rows' => $rows,
-        'meta' => [
-            'branch' => 'All branches',
-            'date_from' => $data['dateFrom'] ?? '-',
-            'date_to' => $data['dateTo'] ?? '-',
-        ],
-    ];
-}
     private function guardOwnerReport(): void
     {
         $user = Auth::user();

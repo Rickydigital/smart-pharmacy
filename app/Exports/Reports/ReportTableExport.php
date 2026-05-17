@@ -14,7 +14,9 @@ class ReportTableExport implements FromArray, WithHeadings, ShouldAutoSize, With
     public function __construct(
         private readonly string $title,
         private readonly array $headings,
-        private readonly array $rows
+        private readonly array $rows,
+        private readonly array $meta = [],
+        private readonly array $summary = []
     ) {}
 
     public function array(): array
@@ -38,7 +40,9 @@ class ReportTableExport implements FromArray, WithHeadings, ShouldAutoSize, With
         $highestRow = $sheet->getHighestRow();
 
         $sheet->getStyle("A1:{$highestColumn}1")->getFont()->setBold(true);
-        $sheet->getStyle("A1:{$highestColumn}1")->getFill()
+
+        $sheet->getStyle("A1:{$highestColumn}1")
+            ->getFill()
             ->setFillType('solid')
             ->getStartColor()
             ->setARGB('FFEFF6FF');
