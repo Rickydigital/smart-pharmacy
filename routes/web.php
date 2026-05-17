@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\Api\IntelligenceController;
 use App\Http\Controllers\BusinessCardController;
 use App\Http\Controllers\DailyClosingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\Intelligence\IntelligenceController;
 use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
