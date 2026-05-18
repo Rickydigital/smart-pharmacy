@@ -36,3 +36,20 @@ Schedule::command('smart-control:sync-market-products')
 Schedule::command('intelligence:generate')
     ->dailyAt('02:00')
     ->withoutOverlapping();
+
+Schedule::command('backup:run --only-db')
+    ->dailyAt('01:00')
+    ->withoutOverlapping();
+
+Schedule::command('backup:run')
+    ->sundays()
+    ->at('02:00')
+    ->withoutOverlapping();
+
+Schedule::command('backup:clean')
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
+
+Schedule::command('backup:monitor')
+    ->dailyAt('04:00')
+    ->withoutOverlapping();
