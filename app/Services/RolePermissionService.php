@@ -58,15 +58,29 @@ class RolePermissionService
             ->get();
     }
 
-    public function groupedPermissions()
-    {
-        return Permission::query()
-            ->orderBy('name')
-            ->get()
-            ->groupBy(function (Permission $permission) {
-                return str($permission->name)->before('.')->toString();
-            });
-    }
+   public function groupedPermissions(): array
+{
+    return Permission::query()
+        ->orderBy('name')
+        ->get()
+        ->groupBy(function (Permission $permission) {
+            return str($permission->name)->before('.')->toString();
+        })
+        ->map(function ($permissions) {
+            return $permissions
+                ->values()
+                ->map(function (Permission $permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'guard_name' => $permission->guard_name,
+                    ];
+                })
+                ->values()
+                ->all();
+        })
+        ->toArray();
+}
 
     public function canEditPermissions(Role $role): bool
     {
