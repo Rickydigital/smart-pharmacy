@@ -6,20 +6,27 @@ use App\Http\Controllers\BusinessCardController as WebBusinessCardController;
 
 class BusinessCardController extends ApiController
 {
-    public function profile(): mixed
-    {
-        $user = request()->user()->load(['roles', 'branch.pharmacy.setting', 'pharmacy.setting']);
-        $pharmacy = $user->pharmacy ?: $user->branch?->pharmacy;
+   public function profile(): mixed
+{
+    $user = request()->user();
 
-        return $this->success([
-            'user' => $user,
-            'pharmacy' => $pharmacy,
-            'branch' => $user->branch,
-            'settings' => $pharmacy?->setting,
-            'download_endpoint' => '/api/v1/business-card/download',
-            'print_endpoint' => '/api/v1/business-card/print',
-        ]);
-    }
+    $user?->load([
+        'roles',
+        'branch.pharmacy.setting',
+        'pharmacy.setting',
+    ]);
+
+    $pharmacy = $user?->pharmacy ?: $user?->branch?->pharmacy;
+
+    return $this->success([
+        'user' => $user,
+        'pharmacy' => $pharmacy,
+        'branch' => $user?->branch,
+        'settings' => $pharmacy?->setting,
+        'download_endpoint' => '/api/v1/business-card/download',
+        'print_endpoint' => '/api/v1/business-card/print',
+    ]);
+}
 
     public function download(): mixed
     {

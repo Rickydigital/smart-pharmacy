@@ -70,6 +70,7 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/quick-search', QuickSearchController::class)->name('quick-search');
         Route::get('/topbar', [TopbarController::class, 'index'])->name('topbar');
+        Route::patch('/topbar/messages/read', [TopbarController::class, 'markMessagesRead']);
 
         Route::prefix('business-card')->name('business-card.')->group(function () {
             Route::get('/', [BusinessCardController::class, 'profile'])->name('profile');

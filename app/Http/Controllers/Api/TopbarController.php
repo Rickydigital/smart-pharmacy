@@ -78,4 +78,20 @@ class TopbarController extends Controller
             ],
         ]);
     }
+
+    public function markMessagesRead(Request $request): JsonResponse
+{
+    $user = $request->user();
+
+    if ($user) {
+        $user->unreadNotifications()->update([
+            'read_at' => now(),
+        ]);
+    }
+
+    return response()->json([
+        'ok' => true,
+        'message' => 'Messages marked as read.',
+    ]);
+}
 }
