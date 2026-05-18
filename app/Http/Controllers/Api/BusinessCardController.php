@@ -6,7 +6,7 @@ use App\Http\Controllers\BusinessCardController as WebBusinessCardController;
 
 class BusinessCardController extends ApiController
 {
-   public function profile(): mixed
+public function profile(): mixed
 {
     $user = request()->user();
 
@@ -23,15 +23,13 @@ class BusinessCardController extends ApiController
         'pharmacy' => $pharmacy,
         'branch' => $user?->branch,
         'settings' => $pharmacy?->setting,
+        'logo_url' => $pharmacy?->logo_path
+            ? asset('storage/' . $pharmacy->logo_path)
+            : null,
         'download_endpoint' => '/api/v1/business-card/download',
         'print_endpoint' => '/api/v1/business-card/print',
     ]);
 }
-
-    public function download(): mixed
-    {
-        return $this->callWeb(WebBusinessCardController::class, 'downloadBusinessCardPdf');
-    }
 
     public function print(): mixed
     {
