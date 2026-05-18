@@ -72,11 +72,11 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::get('/topbar', [TopbarController::class, 'index'])->name('topbar');
         Route::patch('/topbar/messages/read', [TopbarController::class, 'markMessagesRead']);
 
-        Route::prefix('business-card')->name('business-card.')->group(function () {
-            Route::get('/', [BusinessCardController::class, 'profile'])->name('profile');
-            Route::get('/download', [BusinessCardController::class, 'download'])->name('download');
-            Route::get('/print', [BusinessCardController::class, 'print'])->name('print');
-        });
+      Route::prefix('business-card')->group(function () {
+            Route::get('/', [BusinessCardController::class, 'profile']);
+            Route::get('/download', [BusinessCardController::class, 'download']);
+            Route::get('/print', [BusinessCardController::class, 'print']);
+            });
 
         /*
         |--------------------------------------------------------------------------
